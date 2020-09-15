@@ -29,8 +29,10 @@
 #include <QtWidgets/QMenu> // Until native looking QML dialogs are implemented (Qt5.4?)
 #include <QtWidgets/QMenuBar>
 #include <QStandardItemModel>
+#ifndef QT_NO_PRINTER
 #include <QPrinter>
 #include <QPrintDialog>
+#endif
 #include <QTemporaryFile>
 #include <QFileInfo>
 #include <QFontDatabase>
@@ -162,15 +164,22 @@ QgisMobileapp::QgisMobileapp( QgsApplication *app, QObject *parent )
   }
 
   QSettings settings;
-  const bool firstRunFlag = settings.value( QStringLiteral( "/QField/FirstRunFlag" ), QString() ).toString().isEmpty();
-  if ( firstRunFlag && !mPlatformUtils.packagePath().isEmpty() )
+  bool firstRunFlag = settings.value( QStringLiteral( "/QField/FirstRunFlag" ), true ).toBool();
+
+#if defined (Q_OS_IOS)
+#if defined(__x86_64__)
+  // on iOS simulator, the settings will remain but apparently path to the app is changing and needs to be reevaluated
+  firstRunFlag = true;
+#endif
+#endif
+  QString packagePath = mPlatformUtils.packagePath();
+
+  if ( firstRunFlag && !packagePath.isEmpty() )
   {
     QList<QPair<QString, QString>> projects;
-    QString path = mPlatformUtils.packagePath();
-    path.chop( 6 ); // remove /share/ from the path
-    projects << qMakePair( QStringLiteral( "Simple Bee Farming Demo" ), path  + QStringLiteral( "/resources/demo_projects/simple_bee_farming.qgs" ) )
-             << qMakePair( QStringLiteral( "Advanced Bee Farming Demo" ), path  + QStringLiteral( "/resources/demo_projects/advanced_bee_farming.qgs" ) )
-             << qMakePair( QStringLiteral( "Live QField Users Survey Demo" ), path  + QStringLiteral( "/resources/demo_projects/live_qfield_users_survey.qgs" ) );
+    projects << qMakePair( QStringLiteral( "Simple Bee Farming Demo" ), packagePath  + QStringLiteral( "/demo_projects/simple_bee_farming.qgs" ) )
+             << qMakePair( QStringLiteral( "Advanced Bee Farming Demo" ), packagePath  + QStringLiteral( "/demo_projects/advanced_bee_farming.qgs" ) )
+             << qMakePair( QStringLiteral( "Live QField Users Survey Demo" ), packagePath  + QStringLiteral( "/demo_projects/live_qfield_users_survey.qgs" ) );
     saveRecentProjects( projects );
   }
 
@@ -395,6 +404,7 @@ void QgisMobileapp::saveRecentProjects( QList<QPair<QString, QString>> &projects
   settings.remove( QStringLiteral( "/qgis/recentProjects" ) );
   for ( int idx = 0; idx < projects.count() && idx < 5; idx++ )
   {
+    qDebug() << projects.at( idx ).first << projects.at( idx ).second;
     settings.beginGroup( QStringLiteral( "/qgis/recentProjects/%1" ).arg( idx ) );
     settings.setValue( QStringLiteral( "title" ), projects.at( idx ).first );
     settings.setValue( QStringLiteral( "path" ), projects.at( idx ).second );
@@ -498,6 +508,7 @@ void QgisMobileapp::reloadProjectFile( const QString &path )
 
 void QgisMobileapp::print( int layoutIndex )
 {
+#ifndef QT_NO_PRINTER
   const QList<QgsPrintLayout *> projectLayouts( mProject->layoutManager()->printLayouts() );
 
   const auto &layoutToPrint = projectLayouts.at( layoutIndex );
@@ -524,6 +535,9 @@ void QgisMobileapp::print( int layoutIndex )
   exporter.print( printer, printSettings );
 
   mPlatformUtils.open( printer.outputFileName() );
+#else
+  #warning "No PrintSupport for iOs. QgisMobileapp::print won't do anything."
+#endif
 }
 
 bool QgisMobileapp::event( QEvent *event )

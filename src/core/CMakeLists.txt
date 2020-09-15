@@ -144,6 +144,13 @@ IF (ANDROID)
     androidviewstatus.cpp
     androidprojectsource.cpp
   )
+ELSEIF (${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
+  SET(QFIELD_CORE_HDRS ${QFIELD_CORE_HDRS}
+    ios/iosplatformutilities.h
+  )
+  SET(QFIELD_CORE_SRCS ${QFIELD_CORE_SRCS}
+    ios/iosplatformutilities.mm
+  )
 ENDIF (ANDROID)
 
 FIND_PACKAGE(Sqlite3)
@@ -161,16 +168,15 @@ INCLUDE_DIRECTORIES(
   ${CMAKE_SOURCE_DIR}/3rdparty/tessellate
 )
 
-ADD_LIBRARY(qfield_core SHARED ${QFIELD_CORE_SRCS} ${QFIELD_CORE_HDRS})
+ADD_LIBRARY(qfield_core STATIC ${QFIELD_CORE_SRCS} ${QFIELD_CORE_HDRS})
 
-TARGET_LINK_LIBRARIES(qfield_core
+TARGET_LINK_LIBRARIES(qfield_core PUBLIC
   tess
   Qt5::Core
   Qt5::Gui
   Qt5::Xml
   Qt5::Positioning
   Qt5::Widgets
-  Qt5::PrintSupport
   Qt5::Network
   Qt5::Quick
   Qt5::Svg
@@ -185,17 +191,23 @@ TARGET_LINK_LIBRARIES(qfield_core
 )
 
 IF (ANDROID)
-  TARGET_LINK_LIBRARIES(qfield_core
+  TARGET_LINK_LIBRARIES(qfield_core PUBLIC
     Qt5::AndroidExtras
   )
 ENDIF (ANDROID)
 
+IF (TARGET Qt5::PrintSupport)
+  TARGET_LINK_LIBRARIES(qfield_core PUBLIC
+    Qt5::PrintSupport
+  )
+ENDIF ()
+
 INSTALL(FILES ${QFIELD_CORE_HDRS} DESTINATION ${QFIELD_INCLUDE_DIR})
 INSTALL(TARGETS qfield_core
+  BUNDLE DESTINATION ${QFIELD_BIN_DIR}
   RUNTIME DESTINATION ${QFIELD_BIN_DIR}
   LIBRARY DESTINATION ${QFIELD_LIB_DIR}
   ARCHIVE DESTINATION ${QFIELD_LIB_DIR}
   FRAMEWORK DESTINATION ${QFIELD_FW_SUBDIR}
   PUBLIC_HEADER DESTINATION ${QFIELD_INCLUDE_DIR}
 )
-

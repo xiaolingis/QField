@@ -1,6 +1,8 @@
 #############################################################
 # CMake settings
 CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
+
+
 SET(CMAKE_COLOR_MAKEFILE ON)
 SET (APP_NAME "QField" CACHE STRING "Application Name")
 SET (APK_VERSION_CODE "1" CACHE STRING "Apk Version Code (Example: 1)")
@@ -31,7 +33,12 @@ SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 CMAKE_POLICY(SET CMP0071 NEW)
 
 ENABLE_TESTING()
-FIND_PACKAGE(QGIS)
+
+FIND_PACKAGE(Qt5 COMPONENTS Test Concurrent Core Qml Gui Xml Positioning Widgets Network Quick Svg OpenGL Sql Sensors WebView Charts REQUIRED)
+# PrintSupport isn't required, because it doesn't exist for ios
+# qgis will deal with it an define a public 'QT_NO_PRINTER'
+FIND_PACKAGE(Qt5 COMPONENTS PrintSupport QUIET)
+FIND_PACKAGE(QGIS REQUIRED)
 
 SET(QT_MIN_VERSION 5.14.0)
 
@@ -57,6 +64,8 @@ IF (ANDROID)
 ELSE ()
   SET (QFIELD_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/output)
 ENDIF ()
+
+ADD_DEFINITIONS(-DQT_NO_PRINTER)
 
 SET (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${QFIELD_OUTPUT_DIRECTORY}/${QFIELD_BIN_SUBDIR})
 SET (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${QFIELD_OUTPUT_DIRECTORY}/${QFIELD_LIB_SUBDIR})
@@ -113,9 +122,19 @@ IF (ANDROID)
 
   CREATE_ZIP("${CMAKE_CURRENT_BINARY_DIR}/android-build/assets/assets.zip" "${asset_files}" "${OSGEO4A_STAGE_DIR}/${ANDROID_ABI}/files/")
   ADD_CUSTOM_TARGET(assets ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/android-build/assets/assets.zip")
-ENDIF (ANDROID)
 
-FIND_PACKAGE(Qt5 COMPONENTS Test Concurrent Core Qml Gui Xml Positioning Widgets PrintSupport Network Quick Svg OpenGL Sql PrintSupport Sensors WebView REQUIRED)
+ELSEIF (${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
+  # we need to avoid having a folder named resources as iOS signing fails otherwise
+  FILE(COPY ${QGIS_APPLE_RESOURCES_DIR}/resources DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/qgis_resources)
+
+  set(QFIELD_RESOURCE_FILES
+    ${QFIELD_PROJ_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/demo_projects
+    ${QGIS_APPLE_RESOURCES_DIR}/svg
+    ${CMAKE_CURRENT_BINARY_DIR}/qgis_resources
+    )
+ENDIF()
+
 
 ADD_SUBDIRECTORY(3rdparty/tessellate)
 ADD_SUBDIRECTORY(src/core)

@@ -42,6 +42,8 @@
 #include "platformutilities.h"
 #if defined(Q_OS_ANDROID)
 #include "androidplatformutilities.h"
+#elif defined(Q_OS_IOS)
+#include "ios/iosplatformutilities.h"
 #endif
 
 class AppInterface;
@@ -155,6 +157,8 @@ class QgisMobileapp : public QQmlApplicationEngine
 
 #if defined(Q_OS_ANDROID)
     AndroidPlatformUtilities mPlatformUtils;
+#elif defined(Q_OS_IOS)
+    IosPlatformUtilities mPlatformUtils;
 #else
     PlatformUtilities mPlatformUtils;
 #endif
