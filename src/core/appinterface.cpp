@@ -18,6 +18,8 @@
 #include "appinterface.h"
 #include "qgismobileapp.h"
 
+#include "ios/iosplatformutilities.h"
+
 AppInterface::AppInterface( QgisMobileapp *app )
   : mApp( app )
 {
