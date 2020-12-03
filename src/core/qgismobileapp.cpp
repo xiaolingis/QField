@@ -224,7 +224,7 @@ QgisMobileapp::QgisMobileapp( QgsApplication *app, QObject *parent )
   firstRunFlag = true;
 #endif
 #endif
-  QString packagePath = mPlatformUtils.packagePath();
+  QString packagePath = PlatformUtilities::instance()->packagePath();
 
   if ( firstRunFlag && !packagePath.isEmpty() )
   {
