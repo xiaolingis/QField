@@ -313,7 +313,7 @@ ApplicationWindow {
       }
 
       onConfirmedClicked: {
-          if( !featureForm.geometryRequested && !overlayFeatureFormDrawer.visible )
+          if( !digitizingToolbar.geometryRequested && !overlayFeatureFormDrawer.visible )
           {
               identifyTool.identify(point)
           }
@@ -391,7 +391,7 @@ ApplicationWindow {
         model: RubberbandModel {
           frozen: false
           currentCoordinate: coordinateLocator.currentCoordinate
-          vectorLayer: featureForm.geometryRequested ? featureForm.geometryRequestedLayer : dashBoard.currentLayer
+          vectorLayer: digitizingToolbar.geometryRequested ? digitizingToolbar.geometryRequestedLayer : dashBoard.currentLayer
           crs: mapCanvas.mapSettings.destinationCrs
         }
 
@@ -761,7 +761,7 @@ ApplicationWindow {
 
     CloseTool {
       id: abortRequestGeometry
-      visible: featureForm.geometryRequested
+      visible: digitizingToolbar.geometryRequested
       toolText: qsTr( 'Cancel addition' )
       onClosedTool: digitizingToolbar.cancel()
     }
@@ -1065,7 +1065,7 @@ ApplicationWindow {
                      // unfortunately there is no way to call QVariant::toBool in QML so the value is a string
                      && dashBoard.currentLayer.customProperty( 'QFieldSync/is_geometry_locked' ) !== 'true'
                      && !geometryEditorsToolbar.stateVisible) || stateMachine.state === 'measure' ||
-                    (stateMachine.state === "digitize" && featureForm.geometryRequested)
+                    (stateMachine.state === "digitize" && digitizingToolbar.geometryRequested)
       rubberbandModel: currentRubberband ? currentRubberband.model : null
       coordinateLocator: coordinateLocator
       mapSettings: mapCanvas.mapSettings
@@ -1074,14 +1074,26 @@ ApplicationWindow {
 
       FeatureModel {
         id: digitizingFeature
-        currentLayer: featureForm.geometryRequested ? featureForm.geometryRequestedLayer : dashBoard.currentLayer
+        currentLayer: digitizingToolbar.geometryRequested ? digitizingToolbar.geometryRequestedLayer : dashBoard.currentLayer
         positionInformation: positionSource.positionInfo
         topSnappingResult: coordinateLocator.topSnappingResult
         geometry: Geometry {
           id: digitizingGeometry
           rubberbandModel: digitizingRubberband.model
-          vectorLayer: featureForm.geometryRequested ? featureForm.geometryRequestedLayer : dashBoard.currentLayer
+          vectorLayer: digitizingToolbar.geometryRequested ? digitizingToolbar.geometryRequestedLayer : dashBoard.currentLayer
         }
+      }
+
+      property string previousStateMachineState: ''
+      onGeometryRequestedChanged: {
+          if ( geometryRequested ) {
+              previousStateMachineState = stateMachine.state
+              stateMachine.state = "digitize"
+          }
+          else
+          {
+              stateMachine.state = previousStateMachineState
+          }
       }
 
       onVertexCountChanged: {
@@ -1120,24 +1132,20 @@ ApplicationWindow {
       }
 
       onCancel: {
-          if ( featureForm.geometryRequested )
+          if ( geometryRequested )
           {
-              stateMachine.state = featureForm.previousStateMachineState
-              featureForm.geometryRequested = false
-              featureForm.show()
+              geometryRequested = false
           }
       }
 
       onConfirm: {
-        if ( featureForm.geometryRequested )
+        if ( geometryRequested )
         {
             coordinateLocator.flash()
             digitizingFeature.geometry.applyRubberband()
-            featureForm.geometryRequestedItem.requestedGeometry(digitizingFeature.geometry)
+            geometryRequestedItem.requestedGeometry(digitizingFeature.geometry)
             digitizingRubberband.model.reset()
-            stateMachine.state = featureForm.previousStateMachineState
-            featureForm.geometryRequested = false
-            featureForm.show()
+            geometryRequested = false
             return;
         }
 
@@ -1547,10 +1555,9 @@ ApplicationWindow {
   FeatureListForm {
     id: featureForm
 
-    property string previousStateMachineState: ''
-
     objectName: "featureForm"
     mapSettings: mapCanvas.mapSettings
+    digitizingToolbar: digitizingToolbar
 
     visible: state != "Hidden"
     focus: visible
@@ -1594,12 +1601,6 @@ ApplicationWindow {
       }
 
       geometryEditorsToolbar.init()
-    }
-
-    onRequestGeometry: {
-        previousStateMachineState = stateMachine.state
-        stateMachine.state = "digitize"
-        featureForm.hide()
     }
 
     Component.onCompleted: focusstack.addFocusTaker( this )
