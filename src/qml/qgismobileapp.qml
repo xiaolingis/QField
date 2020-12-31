@@ -1087,6 +1087,7 @@ ApplicationWindow {
       property string previousStateMachineState: ''
       onGeometryRequestedChanged: {
           if ( geometryRequested ) {
+              digitizingRubberband.model.reset()
               previousStateMachineState = stateMachine.state
               stateMachine.state = "digitize"
           }
@@ -1111,21 +1112,25 @@ ApplicationWindow {
                 }
                 if( !overlayFeatureFormDrawer.featureForm.featureCreated )
                 {
-                    digitizingFeature.resetAttributes();
+                    overlayFeatureFormDrawer.featureForm.resetAttributes();
+                    overlayFeatureFormDrawer.featureModel.geometry = digitizingFeature.geometry
+                    overlayFeatureFormDrawer.featureModel.applyGeometry()
                     if( overlayFeatureFormDrawer.featureForm.model.constraintsHardValid ){
                       // when the constrainst are fulfilled
                       // indirect action, no need to check for success and display a toast, the log is enough
-                      overlayFeatureFormDrawer.featureForm.featureCreated = digitizingFeature.create()
+                      overlayFeatureFormDrawer.featureForm.featureCreated = overlayFeatureFormDrawer.featureForm.create()
                     }
                 } else {
                   // indirect action, no need to check for success and display a toast, the log is enough
-                  digitizingFeature.save()
+                  overlayFeatureFormDrawer.featureModel.geometry = digitizingFeature.geometry
+                  overlayFeatureFormDrawer.featureModel.applyGeometry()
+                  overlayFeatureFormDrawer.featureForm.save()
                 }
             } else {
               if( overlayFeatureFormDrawer.featureForm.featureCreated ) {
                 // delete the feature when the geometry gets invalid again
                 // indirect action, no need to check for success and display a toast, the log is enough
-                overlayFeatureFormDrawer.featureForm.featureCreated = !digitizingFeature.deleteFeature()
+                overlayFeatureFormDrawer.featureForm.featureCreated = !overlayFeatureFormDrawer.featureForm.deleteFeature()
               }
             }
         }
@@ -1164,20 +1169,24 @@ ApplicationWindow {
 
         if ( !digitizingFeature.suppressFeatureForm() )
         {
-          digitizingFeature.resetAttributes();
+          overlayFeatureFormDrawer.featureModel.resetAttributes()
+          overlayFeatureFormDrawer.featureModel.geometry = digitizingFeature.geometry
+          overlayFeatureFormDrawer.featureModel.applyGeometry()
           overlayFeatureFormDrawer.open()
           overlayFeatureFormDrawer.state = "Add"
           overlayFeatureFormDrawer.featureForm.reset()
         }
         else
         {
-          if( !overlayFeatureFormDrawer.featureForm.featureCreated ){
-              digitizingFeature.resetAttributes();
-              if ( ! digitizingFeature.create() ) {
+          if ( !overlayFeatureFormDrawer.featureForm.featureCreated ) {
+              overlayFeatureFormDrawer.featureModel.resetAttributes();
+              overlayFeatureFormDrawer.featureModel.geometry = digitizingFeature.geometry
+              overlayFeatureFormDrawer.featureModel.applyGeometry()
+              if ( !overlayFeatureFormDrawer.featureModel.create() ) {
                 displayToast( qsTr( "Failed to create feature!" ) )
               }
           } else {
-              if ( ! digitizingFeature.save() ) {
+              if ( !overlayFeatureFormDrawer.featureModel.save() ) {
                 displayToast( qsTr( "Failed to save feature!" ) )
               }
           }
@@ -1621,7 +1630,8 @@ ApplicationWindow {
 
   OverlayFeatureFormDrawer {
     id: overlayFeatureFormDrawer
-    featureModel: digitizingFeature
+    digitizingToolbar: digitizingToolbar
+    featureModel.currentLayer: dashBoard.currentLayer
   }
 
   function displayToast( message ) {
