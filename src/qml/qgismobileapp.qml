@@ -1146,11 +1146,14 @@ ApplicationWindow {
       onConfirm: {
         if ( geometryRequested )
         {
+            if ( overlayFeatureFormDrawer.isAdding )
+                overlayFeatureFormDrawer.open()
+
             coordinateLocator.flash()
             digitizingFeature.geometry.applyRubberband()
             geometryRequestedItem.requestedGeometry(digitizingFeature.geometry)
-            digitizingRubberband.model.reset()
             geometryRequested = false
+            digitizingRubberband.model.reset()
             return;
         }
 

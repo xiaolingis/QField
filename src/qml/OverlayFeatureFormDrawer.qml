@@ -11,6 +11,7 @@ Drawer {
   property alias state: overlayFeatureForm.state
   property alias featureForm: overlayFeatureForm
   property DigitizingToolbar digitizingToolbar
+  property bool isAdding: false
 
   edge: parent.width < parent.height ? Qt.BottomEdge : Qt.RightEdge
   width: {
@@ -37,6 +38,10 @@ Drawer {
    * To make a difference between these scenarios we need position of the drawer and the isSaved flag of the FeatureForm
    */
 
+  onOpened: {
+      isAdding = true
+  }
+
   onClosed: {
       if ( !digitizingToolbar.geometryRequested ) {
           if( !overlayFeatureForm.isSaved ) {
@@ -45,20 +50,16 @@ Drawer {
               overlayFeatureForm.isSaved = false //reset
           }
           digitizingRubberband.model.reset()
+          isAdding = false
       }
   }
 
   Connections {
       target: digitizingToolbar
-      property bool wasAdding: false
 
       onGeometryRequestedChanged: {
-          if ( digitizingToolbar.geometryRequested && overlayFeatureFormDrawer.opened ) {
-              wasAdding = true
-              overlayFeatureFormDrawer.close()
-          } else if ( !digitizingToolbar.geometryRequested && wasAdding ) {
-              wasAdding = false
-              overlayFeatureFormDrawer.open()
+          if ( digitizingToolbar.geometryRequested && overlayFeatureFormDrawer.isAdding ) {
+              overlayFeatureFormDrawer.close() // note: the digitizing toolbar will re-open the drawer to avoid panel stacking issues
           }
       }
   }
