@@ -29,6 +29,7 @@ Page {
   property alias toolbarVisible: toolbar.visible
   //! if embedded form called by RelationEditor or RelationReferenceWidget
   property bool embedded: false
+  property int embeddedLevel: 0
   //dontSave means data would be neither saved nor cleared (so feature data is handled elsewhere like e.g. in the tracking)
   property bool dontSave: false
   property bool featureCreated: false
@@ -393,6 +394,8 @@ Page {
 
             height: childrenRect.height
             anchors { left: parent.left; right: parent.right }
+
+            property var featureForm: form
 
             //disable widget if it's:
             // - not activated in multi edit mode
